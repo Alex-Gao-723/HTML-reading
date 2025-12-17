@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>萌宠打赏小程序 - 产品方案文档</title>
+    <!-- 引入 Mermaid 绘图库 -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+        body { font-family: '微软雅黑', sans-serif; background-color: #f4f6f8; color: #333; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; background: #fff; padding: 40px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-radius: 8px; }
+        h1 { text-align: center; color: #1677ff; border-bottom: 2px solid #eee; padding-bottom: 20px; }
+        h2 { border-left: 5px solid #1677ff; padding-left: 10px; margin-top: 40px; background: #f0f7ff; padding: 10px; }
+        .diagram-box { text-align: center; margin: 20px 0; overflow-x: auto; }
+        
+        /* 模拟手机界面的样式 */
+        .phone-mockup {
+            width: 300px;
+            height: 600px;
+            border: 10px solid #333;
+            border-radius: 30px;
+            margin: 0 auto;
+            background: #fff;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        .phone-header { background: #1677ff; color: #fff; padding: 15px; text-align: center; font-size: 14px; }
+        .phone-content { padding: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .dog-card { 
+            height: 120px; 
+            background: #eee; 
+            border-radius: 8px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            cursor: pointer; 
+            border: 2px solid transparent;
+            position: relative;
+        }
+        .dog-card:hover { border-color: #1677ff; background: #e6f7ff; }
+        .dog-card::after { content: '🐶'; font-size: 40px; }
+        .selected { border-color: #1677ff; background: #e6f7ff; }
+        .selected::before { content: '✔'; position: absolute; top: 5px; right: 5px; color: #1677ff; font-weight: bold;}
+        
+        .pay-btn {
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+            width: 80%; background: #1677ff; color: #fff; text-align: center;
+            padding: 12px; border-radius: 25px; cursor: pointer; font-weight: bold;
+            box-shadow: 0 4px 10px rgba(22, 119, 255, 0.3);
+        }
+        .pay-btn:active { background: #0958d9; }
+        
+        .note { font-size: 12px; color: #666; text-align: center; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🐶 萌宠打赏小程序 - 产品交互方案</h1>
+
+    <!-- 第一部分：业务流程图 -->
+    <h2>1. 业务逻辑流程图 (Flowchart)</h2>
+    <p>这是给后端和前端开发人员看的，描述了数据是怎么流转的。</p>
+    <div class="diagram-box">
+        <pre class="mermaid">
+        graph TD
+            Start((用户打开小程序)) --> API[调用接口: 获取图片]
+            API --> Server{Java后端处理}
+            Server -->|随机生成| Data[返回4张图片URL]
+            Data --> Render[前端渲染: 2x2网格展示]
+            
+            Render --> UserAct[用户点击某张图片]
+            UserAct --> Select[UI交互: 图片高亮选中]
+            Select --> BtnClick[点击'打赏1元'按钮]
+            
+            BtnClick --> PayAPI[调用支付宝支付接口]
+            PayAPI --> AliPay{支付结果?}
+            
+            AliPay -->|成功| Success[后端: 记录订单状态]
+            Success --> Toast[前端弹窗: 谢谢老板的狗粮!]
+            Toast --> Refresh[刷新页面/更换图片]
+            
+            AliPay -->|失败/取消| Fail[前端提示: 支付未完成]
+            Fail --> Stay[停留在当前页]
+        </pre>
+    </div>
+
+    <!-- 第二部分：时序图 -->
+    <h2>2. 系统交互时序图 (Sequence Diagram)</h2>
+    <p>这展示了用户、小程序、你的服务器、支付宝服务器四者之间的对话。</p>
+    <div class="diagram-box">
+        <pre class="mermaid">
+        sequenceDiagram
+            participant User as 🙋‍♂️ 用户
+            participant Mini as 📱 小程序前端
+            participant Java as 🖥️ 你的Java服务器
+            participant Ali as 💰 支付宝官方
+            
+            User->>Mini: 打开首页
+            Mini->>Java: GET /api/dogs (获取图片)
+            Java-->>Mini: 返回图片列表 JSON
+            Mini-->>User: 展示4只小狗
+            
+            User->>Mini: 选中一只 -> 点击打赏
+            Mini->>Java: POST /api/pay/create (创建订单)
+            Java->>Ali: 请求预下单
+            Ali-->>Java: 返回 tradeNO (交易号)
+            Java-->>Mini: 返回支付参数
+            
+            Mini->>Ali: 唤起收银台 (my.tradePay)
+            User->>Ali: 输入密码/指纹
+            Ali-->>Mini: 支付成功回调
+            
+            Mini-->>User: ✅ 弹窗: 谢谢狗粮!
+            Mini->>Java: (后台异步) 查询确认订单状态
+        </pre>
+    </div>
+
+    <!-- 第三部分：UI原型图 -->
+    <h2>3. 界面交互原型 (UI Wireframe)</h2>
+    <p>这是给前端看的，页面大概长什么样（你可以试着点击下面的方块）。</p>
+    
+    <div class="phone-mockup">
+        <div class="phone-header">萌宠打赏中心</div>
+        <div class="phone-content">
+            <div class="dog-card" onclick="selectDog(this)"></div>
+            <div class="dog-card" onclick="selectDog(this)"></div>
+            <div class="dog-card" onclick="selectDog(this)"></div>
+            <div class="dog-card" onclick="selectDog(this)"></div>
+        </div>
+        <div class="note">👆 点击上方方块模拟选中</div>
+        <div class="pay-btn" onclick="alert('调用支付宝接口：支付 1.00 元')">💰 打赏 1 元</div>
+    </div>
+
+</div>
+
+<script>
+    // 初始化 Mermaid
+    mermaid.initialize({startOnLoad:true});
+
+    // 简单的交互脚本，为了演示原型效果
+    function selectDog(element) {
+        // 清除其他选中状态
+        document.querySelectorAll('.dog-card').forEach(el => el.classList.remove('selected'));
+        // 选中当前
+        element.classList.add('selected');
+    }
+</script>
+
+</body>
+</html>
