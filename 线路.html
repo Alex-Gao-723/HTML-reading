@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中国自驾游线路地图</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+        }
+        
+        #container {
+            width: 100%;
+            height: 100vh;
+            position: relative;
+        }
+        
+        .info-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            max-width: 300px;
+        }
+        
+        .info-panel h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 20px;
+            border-bottom: 2px solid #1890ff;
+            padding-bottom: 10px;
+        }
+        
+        .route-list {
+            list-style: none;
+        }
+        
+        .route-list li {
+            padding: 8px 0;
+            color: #666;
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+        }
+        
+        .route-list li:before {
+            content: '';
+            width: 10px;
+            height: 10px;
+            background: #1890ff;
+            border-radius: 50%;
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+        
+        .route-list li.start:before {
+            background: #52c41a;
+            width: 12px;
+            height: 12px;
+        }
+        
+        .route-list li.end:before {
+            background: #ff4d4f;
+            width: 12px;
+            height: 12px;
+        }
+        
+        .distance-info {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e8e8e8;
+            font-size: 13px;
+            color: #999;
+        }
+        
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 16px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div class="loading">地图加载中...</div>
+    </div>
+    
+    <div class="info-panel">
+        <h2>🚗 自驾游线路</h2>
+        <ul class="route-list">
+            <li class="start">📍 济南 (起点)</li>
+            <li>📍 哈尔滨</li>
+            <li>📍 北京</li>
+            <li>📍 西安</li>
+            <li class="end">📍 成都 (终点)</li>
+        </ul>
+        <div class="distance-info">
+            <p>总里程：<span id="totalDistance">计算中...</span></p>
+            <p>预计时间：<span id="totalTime">计算中...</span></p>
+        </div>
+    </div>
+
+    <script src="https://webapi.amap.com/maps?v=2.0&key=19ee4d304edd79346348de24ea04860c"></script>
+    <script>
+        window._AMapSecurityConfig = {
+            securityJsCode: 'code',
+        }
+        
+        // 初始化地图
+        AMapLoader.load({
+            key: "19ee4d304edd79346348de24ea04860c",
+            version: "2.0",
+            plugins: ['AMap.Driving', 'AMap.Marker', 'AMap.InfoWindow']
+        }).then((AMap) => {
+            // 创建地图实例
+            const map = new AMap.Map('container', {
+                zoom: 5,
+                center: [108.939821, 34.343147], // 中国中心位置
+                mapStyle: 'amap://styles/whitesmoke'
+            });
+
+            // 定义城市坐标
+            const cities = [
+                { name: '济南', position: [117.000923, 36.675807] },
+                { name: '哈尔滨', position: [126.642464, 45.756967] },
+                { name: '北京', position: [116.405285, 39.904989] },
+                { name: '西安', position: [108.948024, 34.263161] },
+                { name: '成都', position: [104.065735, 30.659462] }
+            ];
+
+            // 添加城市标记
+            cities.forEach((city, index) => {
+                let icon;
+                if (index === 0) {
+                    // 起点标记（绿色）
+                    icon = new AMap.Icon({
+                        size: new AMap.Size(30, 40),
+                        image: 'https://webapi.amap.com/theme/v1.3/markers/n/start.png',
+                        imageSize: new AMap.Size(30, 40)
+                    });
+                } else if (index === cities.length - 1) {
+                    // 终点标记（红色）
+                    icon = new AMap.Icon({
+                        size: new AMap.Size(30, 40),
+                        image: 'https://webapi.amap.com/theme/v1.3/markers/n/end.png',
+                        imageSize: new AMap.Size(30, 40)
+                    });
+                } else {
+                    // 途径点标记（蓝色）
+                    icon = new AMap.Icon({
+                        size: new AMap.Size(25, 34),
+                        image: 'https://webapi.amap.com/theme/v1.3/markers/n/mid.png',
+                        imageSize: new AMap.Size(25, 34)
+                    });
+                }
+
+                const marker = new AMap.Marker({
+                    position: city.position,
+                    map: map,
+                    title: city.name,
+                    icon: icon,
+                    label: {
+                        content: city.name,
+                        direction: 'top',
+                        style: {
+                            fontSize: '14px',
+                            fontWeight: 'bold',
+                            color: '#333',
+                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                            border: '1px solid #ccc',
+                            borderRadius: '4px',
+                            padding: '5px 10px'
+                        }
+                    }
+                });
+            });
+
+            // 创建驾车路线规划
+            const driving = new AMap.Driving({
+                map: map,
+                policy: AMap.DrivingPolicy.LEAST_TIME, // 最快捷路线
+                showTraffic: false
+            });
+
+            let totalDistance = 0;
+            let totalTime = 0;
+            let completedRoutes = 0;
+
+            // 绘制路线
+            const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4'];
+            
+            for (let i = 0; i < cities.length - 1; i++) {
+                const start = new AMap.LngLat(cities[i].position[0], cities[i].position[1]);
+                const end = new AMap.LngLat(cities[i + 1].position[0], cities[i + 1].position[1]);
+                
+                driving.search(start, end, function(status, result) {
+                    if (status === 'complete') {
+                        completedRoutes++;
+                        
+                        // 获取路线数据
+                        if (result.routes && result.routes.length) {
+                            const route = result.routes[0];
+                            totalDistance += route.distance;
+                            totalTime += route.time;
+                            
+                            // 自定义路线样式
+                            const path = [];
+                            route.steps.forEach(step => {
+                                step.path.forEach(p => {
+                                    path.push([p.lng, p.lat]);
+                                });
+                            });
+                            
+                            // 绘制路线
+                            new AMap.Polyline({
+                                path: path,
+                                strokeColor: colors[i % colors.length],
+                                strokeOpacity: 0.8,
+                                strokeWeight: 6,
+                                strokeStyle: "solid",
+                                strokeDasharray: [0, 0, 0],
+                                lineJoin: 'round',
+                                lineCap: 'round',
+                                map: map
+                            });
+                            
+                            // 当所有路线都完成时，更新总距离和时间
+                            if (completedRoutes === cities.length - 1) {
+                                document.getElementById('totalDistance').textContent = 
+                                    (totalDistance / 1000).toFixed(1) + ' 公里';
+                                document.getElementById('totalTime').textContent = 
+                                    Math.floor(totalTime / 3600) + ' 小时 ' + 
+                                    Math.floor((totalTime % 3600) / 60) + ' 分钟';
+                                
+                                // 调整地图视野以显示所有标记
+                                map.setFitView();
+                            }
+                        }
+                    }
+                });
+            }
+
+            // 移除加载提示
+            document.querySelector('.loading').style.display = 'none';
+            
+        }).catch((e) => {
+            console.error('地图加载失败:', e);
+            document.querySelector('.loading').textContent = '地图加载失败，请刷新页面重试';
+        });
+    </script>
+</body>
+</html>
