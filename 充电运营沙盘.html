@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>充电站地图展示系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Microsoft YaHei', 'Arial', sans-serif;
+            background: #f0f2f5;
+        }
+        
+        /* 头部样式 */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 15px;
+        }
+        
+        /* 上传区域 */
+        .upload-section {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .upload-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+        }
+        
+        .upload-group-title {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-right: 10px;
+        }
+        
+        .file-upload-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .file-upload-label {
+            display: inline-block;
+            padding: 10px 20px;
+            background: white;
+            color: #667eea;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        
+        .file-upload-label:hover {
+            background: #f8f9fa;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .file-upload-label.heat {
+            background: #ff6b6b;
+            color: white;
+        }
+        
+        .file-upload-label.heat:hover {
+            background: #ff5252;
+        }
+        
+        #fileInput, #heatmapFileInput {
+            display: none;
+        }
+        
+        .file-name {
+            color: white;
+            margin-left: 10px;
+            font-size: 14px;
+        }
+        
+        /* 统计信息 */
+        .stats-bar {
+            background: white;
+            padding: 15px 20px;
+            display: flex;
+            gap: 30px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .stat-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        /* 地图容器 */
+        #mapContainer {
+            width: 100%;
+            height: calc(100vh - 180px);
+            position: relative;
+        }
+        
+        /* 信息窗体自定义样式 */
+        .info-window {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+            min-width: 280px;
+            max-width: 400px;
+        }
+        
+        .info-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #667eea;
+            word-break: break-all;
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            font-size: 14px;
+        }
+        
+        .info-label {
+            color: #666;
+            font-weight: normal;
+        }
+        
+        .info-value {
+            color: #333;
+            font-weight: 500;
+        }
+        
+        .charging-details {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #eee;
+        }
+        
+        .charging-item {
+            display: flex;
+            align-items: center;
+            margin: 6px 0;
+            font-size: 13px;
+        }
+        
+        .charging-type {
+            background: #f0f2f5;
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-right: 10px;
+            min-width: 60px;
+            text-align: center;
+            font-weight: 500;
+        }
+        
+        .type-5c { background: #ff6b6b; color: white; }
+        .type-4c { background: #4ecdc4; color: white; }
+        .type-2c { background: #95a5a6; color: white; }
+        
+        /* 图层控制 */
+        .layer-control {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 100;
+            min-width: 200px;
+        }
+        
+        .layer-control-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .layer-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 8px 0;
+            font-size: 14px;
+        }
+        
+        .layer-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+        
+        .layer-checkbox input[type="checkbox"] {
+            cursor: pointer;
+        }
+        
+        .opacity-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 5px;
+            padding-left: 24px;
+        }
+        
+        .opacity-slider {
+            width: 100px;
+        }
+        
+        .opacity-value {
+            font-size: 12px;
+            color: #666;
+            min-width: 35px;
+        }
+        
+        /* 提示信息 */
+        .empty-state {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: #999;
+            pointer-events: none;
+        }
+        
+        .empty-state svg {
+            width: 100px;
+            height: 100px;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+        
+        /* 加载动画和进度 */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .loading-overlay.active {
+            display: flex;
+        }
+        
+        .loading-content {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            min-width: 300px;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .loading-text {
+            color: #333;
+            margin-top: 10px;
+        }
+        
+        .loading-progress {
+            color: #667eea;
+            font-weight: bold;
+            font-size: 18px;
+            margin-top: 5px;
+        }
+        
+        /* 清除按钮 */
+        .clear-btn {
+            padding: 10px 20px;
+            background: rgba(255,100,100,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+        
+        .clear-btn:hover {
+            background: rgba(255,100,100,0.3);
+        }
+        
+        /* 自定义聚合点样式 */
+        .cluster-marker {
+            background: #667eea;
+            color: white;
+            border: 3px solid white;
+            border-radius: 50%;
+            text-align: center;
+            font-weight: bold;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+        
+        /* 热力图图例 */
+        .heatmap-legend {
+            position: absolute;
+            bottom: 30px;
+            left: 20px;
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: none;
+            z-index: 100;
+        }
+        
+        .heatmap-legend.show {
+            display: block;
+        }
+        
+        .legend-title {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .legend-gradient {
+            width: 200px;
+            height: 20px;
+            background: linear-gradient(to right, 
+                rgba(255, 0, 0, 0.1),
+                rgba(255, 0, 0, 0.3),
+                rgba(255, 0, 0, 0.5),
+                rgba(255, 0, 0, 0.7),
+                rgba(255, 0, 0, 0.9),
+                rgba(255, 0, 0, 1));
+            border-radius: 3px;
+            margin-bottom: 5px;
+            border: 1px solid #ddd;
+        }
+        
+        .legend-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <!-- 头部 -->
+    <div class="header">
+        <h1>⚡ 充电站地图展示系统</h1>
+        <div class="upload-section">
+            <!-- 充电站数据上传 -->
+            <div class="upload-group">
+                <span class="upload-group-title">📍 充电站数据:</span>
+                <div class="file-upload-wrapper">
+                    <label for="fileInput" class="file-upload-label">
+                        上传Excel
+                    </label>
+                    <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
+                    <span class="file-name" id="fileName"></span>
+                </div>
+            </div>
+            
+            <!-- 热力图数据上传 -->
+            <div class="upload-group">
+                <span class="upload-group-title">🔥 热力图数据:</span>
+                <div class="file-upload-wrapper">
+                    <label for="heatmapFileInput" class="file-upload-label heat">
+                        上传Excel
+                    </label>
+                    <input type="file" id="heatmapFileInput" accept=".xlsx,.xls,.csv">
+                    <span class="file-name" id="heatmapFileName"></span>
+                </div>
+            </div>
+            
+            <button class="clear-btn" onclick="clearAllData()">
+                🗑️ 清除所有
+            </button>
+        </div>
+    </div>
+    
+    <!-- 统计栏 -->
+    <div class="stats-bar">
+        <div class="stat-item">
+            <span class="stat-label">充电站总数:</span>
+            <span class="stat-value" id="totalStations">0</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">充电枪总数:</span>
+            <span class="stat-value" id="totalGuns">0</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">5C充电枪:</span>
+            <span class="stat-value" id="total5C" style="color: #ff6b6b;">0</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">4C充电枪:</span>
+            <span class="stat-value" id="total4C" style="color: #4ecdc4;">0</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">2C充电枪:</span>
+            <span class="stat-value" id="total2C" style="color: #95a5a6;">0</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">六边形热力:</span>
+            <span class="stat-value" id="totalHexagons" style="color: #ff6b6b;">0</span>
+        </div>
+    </div>
+    
+    <!-- 地图容器 -->
+    <div id="mapContainer">
+        <div class="empty-state" id="emptyState">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                <circle cx="12" cy="10" r="3"></circle>
+            </svg>
+            <p>请上传数据文件以显示地图</p>
+            <p style="font-size: 12px; margin-top: 10px;">
+                充电站数据：场站名称 | 经度 | 纬度 | 充电枪数 | 5C | 2C | 4C<br>
+                热力图数据：六边形WKT | 热力值
+            </p>
+        </div>
+        
+        <!-- 图层控制 -->
+        <div class="layer-control">
+            <div class="layer-control-title">🗺️ 图层控制</div>
+            <div class="layer-item">
+                <label class="layer-checkbox">
+                    <input type="checkbox" id="stationLayerToggle" checked onchange="toggleStationLayer()">
+                    <span>充电站图层</span>
+                </label>
+            </div>
+            <div class="layer-item">
+                <label class="layer-checkbox">
+                    <input type="checkbox" id="heatmapLayerToggle" checked onchange="toggleHeatmapLayer()">
+                    <span>热力图图层</span>
+                </label>
+            </div>
+            <div class="opacity-control" id="heatmapOpacityControl" style="display: none;">
+                <span style="font-size: 12px;">透明度:</span>
+                <input type="range" class="opacity-slider" id="heatmapOpacitySlider" 
+                       min="0" max="100" value="70" onchange="updateHeatmapOpacity(this.value)">
+                <span class="opacity-value" id="heatmapOpacityValue">70%</span>
+            </div>
+        </div>
+        
+        <!-- 热力图图例 -->
+        <div class="heatmap-legend" id="heatmapLegend">
+            <div class="legend-title">热力值范围</div>
+            <div class="legend-gradient"></div>
+            <div class="legend-labels">
+                <span>低</span>
+                <span id="minHeatValue">0</span>
+                <span>-</span>
+                <span id="maxHeatValue">100</span>
+                <span>高</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 加载提示 -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <div class="loading-text">正在处理数据...</div>
+            <div class="loading-progress" id="loadingProgress">0%</div>
+        </div>
+    </div>
+
+    <!-- 引入高德地图 -->
+    <script src="https://webapi.amap.com/maps?v=2.0&key=19ee4d304edd79346348de24ea04860c&plugin=AMap.MarkerCluster,AMap.MassMarks"></script>
+    <!-- 引入SheetJS库用于读取Excel -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    
+    <script>
+        let map;
+        let markerCluster = null;
+        let massMarks = null;
+        let stationData = [];
+        let hexagonData = [];
+        let hexagonPolygons = [];
+        let markers = [];
+        let stationLayerVisible = true;
+        let heatmapLayerVisible = true;
+        let currentHeatmapOpacity = 0.7;
+        
+        // 充电站SVG图标
+        const stationIconSvg = `
+            <svg width="32" height="42" viewBox="0 0 32 42" xmlns="http://www.w3.org/2000/svg">
+                <path d="M16 0C7.2 0 0 7.2 0 16c0 12 16 26 16 26s16-14 16-26c0-8.8-7.2-16-16-16z" fill="#667eea"/>
+                <circle cx="16" cy="16" r="12" fill="white"/>
+                <path d="M13 16l1.5-6h5l-1.5 6h4l-8 8v-8h-4z" fill="#667eea"/>
+            </svg>
+        `;
+        
+        // 初始化地图
+        function initMap() {
+            map = new AMap.Map('mapContainer', {
+                zoom: 10,
+                center: [116.440723, 40.027463],
+                mapStyle: 'amap://styles/light'
+            });
+            
+            // 添加缩放控件
+            AMap.plugin(['AMap.Scale', 'AMap.ToolBar'], function(){
+                map.addControl(new AMap.Scale());
+                map.addControl(new AMap.ToolBar({
+                    position: 'LT'
+                }));
+            });
+        }
+        
+        // 初始化
+        window.onload = function() {
+            initMap();
+            
+            // 文件上传监听
+            document.getElementById('fileInput').addEventListener('change', handleFileUpload);
+            document.getElementById('heatmapFileInput').addEventListener('change', handleHeatmapFileUpload);
+        };
+        
+        // 处理充电站文件上传
+        async function handleFileUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            document.getElementById('fileName').textContent = file.name;
+            showLoading(true, '正在读取充电站数据...');
+            
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const data = e.target.result;
+                    const workbook = XLSX.read(data, { type: 'binary' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+                    
+                    await processStationData(jsonData.slice(1));
+                } catch (error) {
+                    alert('读取文件失败，请确保文件格式正确！');
+                    console.error(error);
+                } finally {
+                    showLoading(false);
+                }
+            };
+            reader.readAsBinaryString(file);
+        }
+        
+        // 处理热力图文件上传
+        async function handleHeatmapFileUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            document.getElementById('heatmapFileName').textContent = file.name;
+            showLoading(true, '正在读取热力图数据...');
+            
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const data = e.target.result;
+                    const workbook = XLSX.read(data, { type: 'binary' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+                    
+                    await processHeatmapData(jsonData.slice(1));
+                } catch (error) {
+                    alert('读取热力图文件失败！');
+                    console.error(error);
+                } finally {
+                    showLoading(false);
+                }
+            };
+            reader.readAsBinaryString(file);
+        }
+        
+        // 处理充电站数据
+        async function processStationData(data) {
+            clearStationData();
+            stationData = [];
+            
+            const totalRows = data.length;
+            let validRows = 0;
+            
+            showLoading(true, `正在处理 ${totalRows} 条充电站数据...`);
+            
+            data.forEach((row, index) => {
+                if (row.length >= 7 && row[0] && row[1] && row[2]) {
+                    const lng = parseFloat(row[1]);
+                    const lat = parseFloat(row[2]);
+                    
+                    if (!isNaN(lng) && !isNaN(lat) && lng >= -180 && lng <= 180 && lat >= -90 && lat <= 90) {
+                        const station = {
+                            name: String(row[0]).trim(),
+                            lng: lng,
+                            lat: lat,
+                            lnglat: [lng, lat],
+                            totalGuns: parseInt(row[3]) || 0,
+                            guns5C: parseInt(row[4]) || 0,
+                            guns2C: parseInt(row[5]) || 0,
+                            guns4C: parseInt(row[6]) || 0
+                        };
+                        
+                        stationData.push(station);
+                        validRows++;
+                    }
+                }
+                
+                if ((index + 1) % 100 === 0) {
+                    updateLoadingProgress(Math.floor(((index + 1) / totalRows) * 100));
+                }
+            });
+            
+            if (stationData.length > 0) {
+                document.getElementById('emptyState').style.display = 'none';
+                displayStations();
+                updateStats();
+                
+                if (hexagonData.length === 0) {
+                    // 如果没有热力图数据，自动调整视野到充电站
+                    if (stationData.length === 1) {
+                        map.setZoomAndCenter(16, stationData[0].lnglat);
+                    } else {
+                        map.setFitView();
+                    }
+                }
+            } else {
+                alert('未找到有效数据，请检查文件格式！');
+            }
+            
+            showLoading(false);
+        }
+        
+        // 处理热力图数据
+        async function processHeatmapData(data) {
+            clearHeatmapData();
+            hexagonData = [];
+            
+            const totalRows = data.length;
+            let validRows = 0;
+            let minValue = Infinity;
+            let maxValue = -Infinity;
+            
+            showLoading(true, `正在处理 ${totalRows} 条热力图数据...`);
+            
+            data.forEach((row, index) => {
+                if (row.length >= 2 && row[0] && row[1] !== undefined) {
+                    const wkt = String(row[0]).trim();
+                    const value = parseFloat(row[1]);
+                    
+                    if (!isNaN(value)) {
+                        const coordinates = parseWKTPolygon(wkt);
+                        
+                        if (coordinates && coordinates.length > 0) {
+                            hexagonData.push({
+                                wkt: wkt,
+                                coordinates: coordinates,
+                                value: value
+                            });
+                            
+                            minValue = Math.min(minValue, value);
+                            maxValue = Math.max(maxValue, value);
+                            validRows++;
+                        }
+                    }
+                }
+                
+                if ((index + 1) % 100 === 0) {
+                    updateLoadingProgress(Math.floor(((index + 1) / totalRows) * 100));
+                }
+            });
+            
+            console.log(`热力图数据处理完成: 总共${totalRows}条，有效${validRows}条`);
+            console.log(`热力值范围: ${minValue} - ${maxValue}`);
+            
+            if (hexagonData.length > 0) {
+                document.getElementById('emptyState').style.display = 'none';
+                displayHexagons(minValue, maxValue);
+                updateHeatmapStats();
+                
+                // 显示图例
+                document.getElementById('heatmapLegend').classList.add('show');
+                document.getElementById('minHeatValue').textContent = minValue.toFixed(0);
+                document.getElementById('maxHeatValue').textContent = maxValue.toFixed(0);
+                
+                // 显示透明度控制
+                document.getElementById('heatmapOpacityControl').style.display = 'flex';
+                
+                // 自动调整视野
+                const bounds = getHexagonBounds();
+                if (bounds) {
+                    map.setBounds(bounds);
+                }
+            } else {
+                alert('未找到有效的热力图数据！');
+            }
+            
+            showLoading(false);
+        }
+        
+        // 解析WKT多边形
+        function parseWKTPolygon(wkt) {
+            try {
+                // 移除 POLYGON(( 和 ))
+                const coordsStr = wkt.replace(/POLYGON\s*\(\(/i, '').replace(/\)\)/, '');
+                
+                // 分割坐标对
+                const coordPairs = coordsStr.split(',');
+                const coordinates = [];
+                
+                for (const pair of coordPairs) {
+                    const [lng, lat] = pair.trim().split(/\s+/).map(parseFloat);
+                    if (!isNaN(lng) && !isNaN(lat)) {
+                        coordinates.push([lng, lat]);
+                    }
+                }
+                
+                return coordinates;
+            } catch (error) {
+                console.error('解析WKT失败:', wkt, error);
+                return null;
+            }
+        }
+        
+        // 显示六边形热力图（使用红色渐变）
+        function displayHexagons(minValue, maxValue) {
+            clearHexagons();
+            
+            const range = maxValue - minValue || 1;
+            
+            hexagonData.forEach(hexagon => {
+                // 计算归一化值 (0-1)
+                const normalizedValue = (hexagon.value - minValue) / range;
+                
+                // 使用红色渐变，值越高颜色越深
+                const opacity = 0.2 + normalizedValue * 0.6; // 0.2-0.8的透明度范围
+                const color = `rgba(255, 0, 0, ${opacity})`; // 红色，透明度变化
+                
+                // 创建多边形
+                const polygon = new AMap.Polygon({
+                    path: hexagon.coordinates,
+                    fillColor: '#FF0000', // 固定红色
+                    fillOpacity: opacity * currentHeatmapOpacity,
+                    strokeColor: '#FF0000', // 红色边框
+                    strokeOpacity: Math.min(opacity + 0.2, 1) * currentHeatmapOpacity,
+                    strokeWeight: 1,
+                    zIndex: 50
+                });
+                
+                // 保存原始透明度值
+                polygon._originalOpacity = opacity;
+                polygon._heatValue = hexagon.value;
+                
+                // 鼠标悬停事件
+                polygon.on('mouseover', function(e) {
+                    polygon.setOptions({
+                        fillOpacity: Math.min(opacity + 0.2, 1) * currentHeatmapOpacity,
+                        strokeWeight: 2,
+                        strokeColor: '#CC0000' // 深红色边框
+                    });
+                    
+                    // 显示信息窗口
+                    const center = getPolygonCenter(hexagon.coordinates);
+                    const infoWindow = new AMap.InfoWindow({
+                        content: `
+                            <div style="padding: 10px; min-width: 120px;">
+                                <div style="font-weight: bold; margin-bottom: 5px; color: #333;">热力值</div>
+                                <div style="font-size: 20px; color: #FF0000; font-weight: bold;">${hexagon.value.toFixed(2)}</div>
+                            </div>
+                        `,
+                        offset: new AMap.Pixel(0, 0)
+                    });
+                    infoWindow.open(map, center);
+                });
+                
+                polygon.on('mouseout', function(e) {
+                    polygon.setOptions({
+                        fillOpacity: opacity * currentHeatmapOpacity,
+                        strokeWeight: 1,
+                        strokeColor: '#FF0000'
+                    });
+                    map.clearInfoWindow();
+                });
+                
+                polygon.setMap(map);
+                hexagonPolygons.push(polygon);
+            });
+        }
+        
+        // 获取多边形中心点
+        function getPolygonCenter(coordinates) {
+            let sumLng = 0, sumLat = 0;
+            const count = coordinates.length;
+            
+            coordinates.forEach(coord => {
+                sumLng += coord[0];
+                sumLat += coord[1];
+            });
+            
+            return [sumLng / count, sumLat / count];
+        }
+        
+        // 获取六边形边界
+        function getHexagonBounds() {
+            if (hexagonData.length === 0) return null;
+            
+            let minLng = 180, maxLng = -180, minLat = 90, maxLat = -90;
+            
+            hexagonData.forEach(hexagon => {
+                hexagon.coordinates.forEach(coord => {
+                    minLng = Math.min(minLng, coord[0]);
+                    maxLng = Math.max(maxLng, coord[0]);
+                    minLat = Math.min(minLat, coord[1]);
+                    maxLat = Math.max(maxLat, coord[1]);
+                });
+            });
+            
+            return new AMap.Bounds([minLng, minLat], [maxLng, maxLat]);
+        }
+        
+        // 显示充电站
+        function displayStations() {
+            clearStationMarkers();
+            
+            if (stationData.length === 0 || !stationLayerVisible) return;
+            
+            markers = [];
+            const iconUrl = 'data:image/svg+xml;base64,' + btoa(stationIconSvg);
+            
+            stationData.forEach(station => {
+                const marker = new AMap.Marker({
+                    position: station.lnglat,
+                    title: station.name,
+                    icon: iconUrl,
+                    offset: new AMap.Pixel(-16, -42),
+                    extData: station,
+                    zIndex: 100
+                });
+                
+                marker.on('click', function(e) {
+                    const data = e.target.getExtData();
+                    showInfoWindow(data, e.target.getPosition());
+                });
+                
+                marker.setMap(map);
+                markers.push(marker);
+            });
+        }
+        
+        // 显示信息窗体
+        function showInfoWindow(station, position) {
+            const content = `
+                <div class="info-window">
+                    <div class="info-title">⚡ ${station.name}</div>
+                    <div class="info-row">
+                        <span class="info-label">经度:</span>
+                        <span class="info-value">${station.lng.toFixed(6)}°</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">纬度:</span>
+                        <span class="info-value">${station.lat.toFixed(6)}°</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">充电枪总数:</span>
+                        <span class="info-value">${station.totalGuns} 个</span>
+                    </div>
+                    <div class="charging-details">
+                        <div class="charging-item">
+                            <span class="charging-type type-5c">5C</span>
+                            <span>${station.guns5C} 个</span>
+                        </div>
+                        <div class="charging-item">
+                            <span class="charging-type type-4c">4C</span>
+                            <span>${station.guns4C} 个</span>
+                        </div>
+                        <div class="charging-item">
+                            <span class="charging-type type-2c">2C</span>
+                            <span>${station.guns2C} 个</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            const infoWindow = new AMap.InfoWindow({
+                content: content,
+                offset: new AMap.Pixel(0, -42)
+            });
+            
+            infoWindow.open(map, position);
+        }
+        
+        // 切换充电站图层
+        function toggleStationLayer() {
+            stationLayerVisible = document.getElementById('stationLayerToggle').checked;
+            if (stationLayerVisible) {
+                displayStations();
+            } else {
+                clearStationMarkers();
+            }
+        }
+        
+        // 切换热力图图层
+        function toggleHeatmapLayer() {
+            heatmapLayerVisible = document.getElementById('heatmapLayerToggle').checked;
+            hexagonPolygons.forEach(polygon => {
+                if (heatmapLayerVisible) {
+                    polygon.show();
+                } else {
+                    polygon.hide();
+                }
+            });
+            
+            // 控制图例显示
+            if (heatmapLayerVisible && hexagonData.length > 0) {
+                document.getElementById('heatmapLegend').classList.add('show');
+            } else {
+                document.getElementById('heatmapLegend').classList.remove('show');
+            }
+        }
+        
+        // 更新热力图透明度
+        function updateHeatmapOpacity(value) {
+            currentHeatmapOpacity = value / 100;
+            document.getElementById('heatmapOpacityValue').textContent = value + '%';
+            
+            hexagonPolygons.forEach(polygon => {
+                const originalOpacity = polygon._originalOpacity || 0.5;
+                polygon.setOptions({
+                    fillOpacity: originalOpacity * currentHeatmapOpacity,
+                    strokeOpacity: Math.min(originalOpacity + 0.2, 1) * currentHeatmapOpacity
+                });
+            });
+        }
+        
+        // 更新统计信息
+        function updateStats() {
+            let totalGuns = 0;
+            let total5C = 0;
+            let total4C = 0;
+            let total2C = 0;
+            
+            stationData.forEach(station => {
+                totalGuns += station.totalGuns;
+                total5C += station.guns5C;
+                total4C += station.guns4C;
+                total2C += station.guns2C;
+            });
+            
+            document.getElementById('totalStations').textContent = stationData.length.toLocaleString();
+            document.getElementById('totalGuns').textContent = totalGuns.toLocaleString();
+            document.getElementById('total5C').textContent = total5C.toLocaleString();
+            document.getElementById('total4C').textContent = total4C.toLocaleString();
+            document.getElementById('total2C').textContent = total2C.toLocaleString();
+        }
+        
+        // 更新热力图统计
+        function updateHeatmapStats() {
+            document.getElementById('totalHexagons').textContent = hexagonData.length.toLocaleString();
+        }
+        
+        // 清除充电站标记
+        function clearStationMarkers() {
+            markers.forEach(marker => {
+                marker.setMap(null);
+            });
+            markers = [];
+        }
+        
+        // 清除充电站数据
+        function clearStationData() {
+            clearStationMarkers();
+            stationData = [];
+            updateStats();
+        }
+        
+        // 清除六边形
+        function clearHexagons() {
+            hexagonPolygons.forEach(polygon => {
+                polygon.setMap(null);
+            });
+            hexagonPolygons = [];
+        }
+        
+        // 清除热力图数据
+        function clearHeatmapData() {
+            clearHexagons();
+            hexagonData = [];
+            updateHeatmapStats();
+            document.getElementById('heatmapLegend').classList.remove('show');
+            document.getElementById('heatmapOpacityControl').style.display = 'none';
+        }
+        
+        // 清除所有数据
+        function clearAllData() {
+            clearStationData();
+            clearHeatmapData();
+            document.getElementById('emptyState').style.display = 'block';
+            document.getElementById('fileName').textContent = '';
+            document.getElementById('heatmapFileName').textContent = '';
+            document.getElementById('fileInput').value = '';
+            document.getElementById('heatmapFileInput').value = '';
+            map.clearInfoWindow();
+        }
+        
+        // 显示/隐藏加载提示
+        function showLoading(show, text = '处理中...') {
+            const overlay = document.getElementById('loadingOverlay');
+            if (show) {
+                overlay.classList.add('active');
+                document.querySelector('.loading-text').textContent = text;
+            } else {
+                overlay.classList.remove('active');
+                document.getElementById('loadingProgress').textContent = '0%';
+            }
+        }
+        
+        // 更新加载进度
+        function updateLoadingProgress(percent) {
+            document.getElementById('loadingProgress').textContent = percent + '%';
+        }
+    </script>
+</body>
+</html>
