@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>辛普森悖论 - 统计学中的视觉陷阱</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            width: 100%;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            animation: slideDown 1s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .section {
+            margin-bottom: 40px;
+            animation: fadeIn 1s ease-out forwards;
+            opacity: 0;
+        }
+
+        .section:nth-child(1) { animation-delay: 0.5s; }
+        .section:nth-child(2) { animation-delay: 1s; }
+        .section:nth-child(3) { animation-delay: 1.5s; }
+
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+        }
+
+        .definition {
+            background: #f7f9fc;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+
+        .example-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 30px;
+        }
+
+        .chart-container {
+            background: #fff;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 20px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .chart-container:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .chart-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+            text-align: center;
+            font-size: 1.1em;
+        }
+
+        .bar-chart {
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-end;
+            height: 200px;
+            margin-bottom: 20px;
+        }
+
+        .bar-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+        }
+
+        .bar {
+            width: 40px;
+            background: linear-gradient(to top, #667eea, #a78bfa);
+            margin: 0 10px;
+            border-radius: 5px 5px 0 0;
+            position: relative;
+            animation: growBar 2s ease-out forwards;
+            transform-origin: bottom;
+        }
+
+        @keyframes growBar {
+            from {
+                transform: scaleY(0);
+            }
+            to {
+                transform: scaleY(1);
+            }
+        }
+
+        .bar-label {
+            margin-top: 10px;
+            font-size: 0.9em;
+            color: #555;
+        }
+
+        .bar-value {
+            position: absolute;
+            top: -25px;
+            width: 100%;
+            text-align: center;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .hospital-a { animation-delay: 0.5s; }
+        .hospital-b { animation-delay: 0.7s; }
+        .combined { animation-delay: 0.9s; }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            animation: slideUp 1s ease-out forwards;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .table th, .table td {
+            padding: 12px;
+            text-align: center;
+            border: 1px solid #e0e0e0;
+        }
+
+        .table th {
+            background: #667eea;
+            color: white;
+        }
+
+        .table tr:nth-child(even) {
+            background: #f7f9fc;
+        }
+
+        .highlight {
+            background: #ffd700;
+            padding: 2px 6px;
+            border-radius: 3px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                background: #ffd700;
+            }
+            50% {
+                background: #ffed4e;
+            }
+        }
+
+        .explanation {
+            background: #e8f5e9;
+            border: 2px solid #4caf50;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 30px;
+            animation: bounceIn 1s ease-out forwards;
+            animation-delay: 2s;
+            opacity: 0;
+        }
+
+        @keyframes bounceIn {
+            0% {
+                transform: scale(0.3);
+                opacity: 0;
+            }
+            50% {
+                transform: scale(1.05);
+            }
+            70% {
+                transform: scale(0.9);
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .key-point {
+            display: flex;
+            align-items: center;
+            margin: 15px 0;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .key-point::before {
+            content: "💡";
+            font-size: 1.5em;
+            margin-right: 15px;
+        }
+
+        .interactive-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            margin: 20px auto;
+            display: block;
+        }
+
+        .interactive-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .data-point {
+            display: inline-block;
+            padding: 5px 10px;
+            margin: 5px;
+            border-radius: 5px;
+            background: #e3f2fd;
+            animation: fadeInScale 0.5s ease-out forwards;
+            opacity: 0;
+        }
+
+        @keyframes fadeInScale {
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+            from {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .example-container {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 1.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>辛普森悖论</h1>
+            <div class="subtitle">当整体趋势与分组趋势相反的统计现象</div>
+        </div>
+        
+        <div class="content">
+            <div class="section">
+                <div class="definition">
+                    <h2>📊 什么是辛普森悖论？</h2>
+                    <p style="margin-top: 10px; line-height: 1.6;">
+                        辛普森悖论是一种在概率和统计中出现的现象，指的是在分组比较中都占优势的一方，
+                        在总体评价中反而可能是失势的一方。这种现象揭示了我们在分析数据时可能遇到的陷阱。
+                    </p>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 style="text-align: center; margin-bottom: 20px;">🏥 经典案例：医院治疗成功率</h2>
+                
+                <div class="example-container">
+                    <div class="chart-container">
+                        <div class="chart-title">分组数据</div>
+                        <div class="bar-chart">
+                            <div class="bar-group">
+                                <div class="bar hospital-a" style="height: 80%;">
+                                    <span class="bar-value">80%</span>
+                                </div>
+                                <div class="bar-label">医院A<br>轻症</div>
+                            </div>
+                            <div class="bar-group">
+                                <div class="bar hospital-b" style="height: 90%;">
+                                    <span class="bar-value">90%</span>
+                                </div>
+                                <div class="bar-label">医院B<br>轻症</div>
+                            </div>
+                        </div>
+                        <div class="bar-chart">
+                            <div class="bar-group">
+                                <div class="bar hospital-a" style="height: 30%; background: linear-gradient(to top, #ef4444, #f87171);">
+                                    <span class="bar-value">30%</span>
+                                </div>
+                                <div class="bar-label">医院A<br>重症</div>
+                            </div>
+                            <div class="bar-group">
+                                <div class="bar hospital-b" style="height: 50%; background: linear-gradient(to top, #ef4444, #f87171);">
+                                    <span class="bar-value">50%</span>
+                                </div>
+                                <div class="bar-label">医院B<br>重症</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="chart-container">
+                        <div class="chart-title">总体数据</div>
+                        <div class="bar-chart">
+                            <div class="bar-group">
+                                <div class="bar combined" style="height: 65%; background: linear-gradient(to top, #10b981, #34d399);">
+                                    <span class="bar-value">65%</span>
+                                </div>
+                                <div class="bar-label">医院A<br>总体</div>
+                            </div>
+                            <div class="bar-group">
+                                <div class="bar combined" style="height: 84%; background: linear-gradient(to top, #10b981, #34d399);">
+                                    <span class="bar-value">84%</span>
+                                </div>
+                                <div class="bar-label">医院B<br>总体</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>医院</th>
+                            <th>病例类型</th>
+                            <th>成功/总数</th>
+                            <th>成功率</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td rowspan="2">医院A</td>
+                            <td>轻症</td>
+                            <td>80/100</td>
+                            <td><span class="highlight">80%</span></td>
+                        </tr>
+                        <tr>
+                            <td>重症</td>
+                            <td>30/100</td>
+                            <td><span class="highlight">30%</span></td>
+                        </tr>
+                        <tr>
+                            <td rowspan="2">医院B</td>
+                            <td>轻症</td>
+                            <td>9/10</td>
+                            <td>90%</td>
+                        </tr>
+                        <tr>
+                            <td>重症</td>
+                            <td>5/10</td>
+                            <td>50%</td>
+                        </tr>
+                        <tr style="background: #fffbeb; font-weight: bold;">
+                            <td>医院A总体</td>
+                            <td colspan="2">110/200</td>
+                            <td>55%</td>
+                        </tr>
+                        <tr style="background: #fffbeb; font-weight: bold;">
+                            <td>医院B总体</td>
+                            <td colspan="2">14/20</td>
+                            <td>70%</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="section">
+                <div class="explanation">
+                    <h3 style="color: #2e7d32; margin-bottom: 15px;">🎯 关键洞察</h3>
+                    <div class="key-point">
+                        尽管医院B在轻症和重症的治疗成功率都低于医院A，但总体成功率却更高！
+                    </div>
+                    <div class="key-point">
+                        原因在于：医院A接收了更多重症患者，而医院B主要接收轻症患者，样本分布的不均导致了这种悖论。
+                    </div>
+                    <div class="key-point">
+                        启示：在分析数据时，必须考虑隐藏变量（如病例严重程度）的影响，避免得出错误结论。
+                    </div>
+                </div>
+
+                <button class="interactive-button" onclick="showMoreExamples()">
+                    查看更多实例
+                </button>
+                
+                <div id="moreExamples" style="display: none; margin-top: 20px;">
+                    <h3>其他常见场景：</h3>
+                    <div style="margin-top: 15px;">
+                        <span class="data-point" style="animation-delay: 0.1s;">📚 教育：班级成绩vs学校成绩</span>
+                        <span class="data-point" style="animation-delay: 0.2s;">⚾ 体育：球员打击率分析</span>
+                        <span class="data-point" style="animation-delay: 0.3s;">💼 商业：产品销售数据</span>
+                        <span class="data-point" style="animation-delay: 0.4s;">🗳️ 选举：投票统计分析</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showMoreExamples() {
+            const examples = document.getElementById('moreExamples');
+            if (examples.style.display === 'none') {
+                examples.style.display = 'block';
+                examples.style.animation = 'fadeIn 0.5s ease-out';
+            } else {
+                examples.style.display = 'none';
+            }
+        }
+
+        // 添加数字动画效果
+        function animateNumbers() {
+            const values = document.querySelectorAll('.bar-value');
+            values.forEach((value, index) => {
+                const finalValue = parseInt(value.textContent);
+                let currentValue = 0;
+                const increment = finalValue / 50;
+                const timer = setInterval(() => {
+                    currentValue += increment;
+                    if (currentValue >= finalValue) {
+                        currentValue = finalValue;
+                        clearInterval(timer);
+                    }
+                    value.textContent = Math.floor(currentValue) + '%';
+                }, 30);
+            });
+        }
+
+        // 页面加载后启动数字动画
+        setTimeout(animateNumbers, 1000);
+    </script>
+</body>
+</html>
